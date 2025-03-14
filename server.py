@@ -3,6 +3,7 @@ from parserdb import config
 import socket
 import json
 from urllib.parse import urlparse,parse_qs
+from datetime import datetime
 from decimal import Decimal
 
 server = socket.socket()
@@ -38,105 +39,197 @@ def handle_connections():
                 conn.send(preflight_headers.encode('utf-8'))
                 continue
             print('connected successfully')
-            handle_clients(conn,headers)
+            request=process_get_request(headers,conn) if request.startswith('GET') else process_post_request(request,conn) 
+            response(conn,request)
     except KeyboardInterrupt as error:
         print(error)
     finally:
-        conn.close()
+        # conn.close()
         server.close()
 
 
-def handle_clients(client_sock,headers):
-    try: 
-        data=url_parser(headers)
-        connect_db(data)
-        # print(db_response)
-        # id=0
-        # msg={'assets_id':'','assets_name':'','symbol':'','type':'','price':''}
-        # while id <= len(db_response):
-        #     msg.update(dict(zip(msg.keys(),db_response[id])))
-        #     msg={k:str(v) if isinstance(v,Decimal) else v for k,v in msg.items()}
-        #     id+=1
-        #     print(msg)
-        # complete_response=cors_header + json.dumps(msg)
-        # client_sock.send(complete_response.encode('utf-8'))
-        # print('msg delivered successfully')
-    except Exception as error:
-        print(error)
-
-def url_parser(headers):
-    if headers.startswith(('GET','POST')):
+def process_get_request(headers,conn):#process post request by extracting the request from the http POST method body
+    try:
         url=headers.split(" ")[1]
         parse_url=urlparse(url)
         table_name=parse_url.path.replace('/'," ").strip()
         query_param=parse_qs(parse_url.query)
         data={'table_name':table_name,'columns':{k:v[0] for k,v in query_param.items()}}
+        match data['table_name']:
+            case 'transaction':
+                 print('transaction called')
+                 db_response=get_all_users_transation(data['columns'])
+        return db_response
+    except Exception as error:
+        print(error)
+#GET queies
+def get_all_users_transation(data):
+        try:
+            match data:
+                case {'user_id':user_id} if user_id==data['user_id']:
+                    all_transaction=f"""
+                    SELECT assets_name,symbol,type,trans_type,trans_quantity,trans_price,trans_time
+                    FROM transaction t
+                    JOIN assets a on a.assets_id=t.asset_id
+                    WHERE user_id={data['user_id']}
+                    """
+                    crs=connect_db()
+                    crs.execute(all_transaction)
+                    rsp=crs.fetchall()
+                    results=[]
+                    column_name=('assets_name','symbol','type','trans_type','trans_quantity','trans_price','trans_time')
+                    for x in rsp:
+                        result=dict((zip(column_name,x)))
+                        result['trans_price']=float(result['trans_price'])
+                        result['trans_quantity']=float(result['trans_quantity'])
+                        print(type(result['trans_price']))
+                        print(type(result['trans_quantity']))
+                        results.append(result)
+                    db_response=json.dumps(results)
+                    print(db_response)
+                    return db_response
+        except (Exception,SyntaxError,ValueError,IndexError) as error:
+            print(error)
+
+def process_post_request(request,conn):#extract get request from the url of the http GET method
+    if '\r\n\r\n' in request:
+        headers,body=request.split('\r\n\r\n',1)
+        data=json.loads(body)
         return data
 
-def connect_db(data):
+# def retreive_data_from_db(query_request):
+#     if (len(query_request['columns'])) ==0:
+#         retrieve_all=f"select * from {query_request['table_name']}"
+#         return
+    
+
+
+def connect_db(): # Connect to the data
     try:
         db_params=config()
         connect=psycopg2.connect(**db_params)
         print('data base connected successfully')
         connect.autocommit=True
         crs=connect.cursor()
-        transaction(data,crs )
+        return crs
     except psycopg2.DatabaseError as error:
         print(error)
-    finally:
-        crs.close()
+    # finally:
+    #     crs.close()
 
-
-def transaction(data,crs):
+def transaction(client,data,crs): # transaction function update the transaction and portfolio table
     try:
         crs.execute('BEGIN')
+        validate_trans_client_data(data)
+        validate_trans_db_data(crs,data)
         insert=f"""
         INSERT INTO transaction(user_id,asset_id,trans_type,trans_quantity,trans_price)
-            VALUES({int(data['columns']['user_id'])},{int(data['columns']['asset_id'])},'{data['columns']['trans_type']}',{int(data['columns']['trans_quantity'])},{int(data['columns']['trans_price'])})
+            VALUES({data['user_id']},{data['asset_id']},'{data['trans_type']}',{data['trans_quantity']},{data['trans_price']})
         """
         crs.execute(insert)
-        crs.execute('select * from transaction')
-        fetch_trans=crs.fetchall()
-        print('fetching from transaction')
-        print(fetch_trans)
         port_quantity_query=f"""
-        SELECT quantity FROM portfolio WHERE user_id={int(data['columns']['user_id'])}
+        SELECT quantity FROM portfolio WHERE user_id={int(data['user_id'])}
         """
         crs.execute(port_quantity_query)
         quantity_response=crs.fetchall()
         port_quantity= quantity_response[0][0] if quantity_response else 0
-        print(port_quantity)
-        print(type(data['columns']['trans_quantity']),data['columns']['trans_quantity'])
-        if data['columns']['trans_type'] =='SELL' and int(data['columns']['trans_quantity']) > port_quantity and quantity_response:
+        if data['trans_type'] =='SELL' and int(data['trans_quantity']) > port_quantity and quantity_response:
             raise ValueError('cannnot sell more than owned')
-        print('i am here now')
         quantity=(
-            port_quantity - int(data['columns']['trans_quantity'])
-            if data['columns']['trans_type']=='SELL'
-            else port_quantity + int(data['columns']['trans_quantity'])
+            max(port_quantity - int(data['trans_quantity']),0)
+            if data['trans_type']=='SELL'
+            else port_quantity + int(data['trans_quantity'])
             )
-        print(quantity)
         portfolio=f"""
         INSERT INTO portfolio(user_id,asset_id,quantity)
-            VALUES({data['columns']['user_id']},{data['columns']['asset_id']},{data['columns']['trans_quantity']})
+            VALUES({data['user_id']},{data['asset_id']},{data['trans_quantity']})
             ON CONFLICT(user_id,asset_id)
             DO UPDATE
-            SET quantity=GREATEST({quantity},0)
+            SET quantity={quantity}
         """
         crs.execute(portfolio)
         crs.execute('select * from portfolio')
         fetch_port=crs.fetchall()
         delete_port='delete from portfolio where quantity=0'
         crs.execute(delete_port)
-        print('fetching from portfolio')
-        print(fetch_port)
-        print('portfolio executed')
         crs.execute('COMMIT')
-    except Exception as error:
-        print(error)
+    except ValueError as error:
+        valError={"error":str(error)}
+        error_respons=json.dumps(valError)
+        response(client,error_respons)
+    except psycopg2.DatabaseError as error:
+        print("DatabaseError:",error)
         crs.execute('ROLLBACK')
 
 
+
+
+def validate_trans_client_data(data):# validate input sent sent by client before inserting into transaction table
+    required_data={"user_id","asset_id","trans_type","trans_quantity","trans_price"}
+    missing_data_key=required_data - set(data.keys())
+    missing_data_values={}
+    for k,v in data.copy().items():
+        if data[k]==''.strip():
+            missing_data_values.update({k:v})
+            raise ValueError(f"missing values:f{missing_data_values}")
+    if missing_data_key:
+        raise ValueError(f"missing data:{','.join(missing_data_key)}")
+    if data["trans_quantity"] < 0 or data["trans_price"] < 0:
+        raise ValueError(f"Invalid Numbers:Negative numbers not allowed")
+    return ValueError
+
+
+
+
+def validate_trans_db_data(crs,data): # validate data from the transaction table in the db to decide weather to insert new data into the transaction table or not
+    check_user_asset_existence=f"""
+    select users_id,assets_id 
+    from users u,assets a
+    where u.users_id={data['user_id']} and a.assets_id={data['asset_id']}
+    """
+    crs.execute(check_user_asset_existence)
+    check=crs.fetchall()
+    if not check:
+        raise ValueError('user or selected assets does not exist')
+    
+
+    fetch_duplicate=f"""
+    select user_id,asset_id,trans_type,trans_quantity,trans_price,trans_time
+    from transaction 
+    where user_id={data['user_id']} and trans_time > NOW() - INTERVAL '5 seconds'
+    """
+    crs.execute(fetch_duplicate)
+    result=crs.fetchall()
+    # print(result)
+    if result:
+        duplicates=result
+    else:
+        return
+    for v in duplicates:
+        duplist=list(v)
+        last_time=duplist[5]
+        del duplist[5]
+        dupdata=duplist
+        now=datetime.now()
+        time_diff=(now-last_time).total_seconds()
+        print(f"LAST:{last_time}")
+        print(time_diff)
+
+    for k,v in data.items():
+        if v in dupdata and time_diff < 5:
+            raise ValueError('duplicate transaction wait 30s before trying again')
+        else:
+            return
+        
+    
+def response(client,rsp):# Response route
+    rsp=cors_header + rsp
+    client.send(rsp.encode('utf-8'))
+    client.shutdown(socket.SHUT_RDWR)
 def assets():
     asset="select * from assets"
+
+
+
+
 handle_connections()
