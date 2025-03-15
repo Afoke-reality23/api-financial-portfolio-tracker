@@ -38,7 +38,6 @@ def handle_connections():
             if headers.startswith('OPTIONS'):#Handle preflight request and cors header issues
                 conn.send(preflight_headers.encode('utf-8'))
                 continue
-            print('connected successfully')
             request=process_get_request(headers,conn) if request.startswith('GET') else process_post_request(request,conn) 
             response(conn,request)
     except KeyboardInterrupt as error:
@@ -58,12 +57,82 @@ def process_get_request(headers,conn):#process post request by extracting the re
         match data['table_name']:
             case 'transaction':
                  print('transaction called')
-                 db_response=get_all_users_transation(data['columns'])
+                 db_response=get_users_transation(data['columns'])
+            case 'assets':
+                db_response=get_all_assets()
+            case 'portfolio':
+                db_response=get_user_portfolio(data['columns'])
         return db_response
     except Exception as error:
         print(error)
 #GET queies
-def get_all_users_transation(data):
+def get_all_assets():
+    crs=connect_db()
+    columns=['assets_id','assets_name','symbol','type','current_price']
+    assets_query="select * from assets"
+    crs.execute(assets_query)
+    assets=crs.fetchall()
+    all_assets=[]
+    for asset in assets:
+        data=dict((zip(columns,asset)))
+        data['current_price']=float(data['current_price'])
+        all_assets.append(data)
+    db_assets=json.dumps(all_assets)
+    print(db_assets)
+    return db_assets
+
+
+def get_user_portfolio(data): #get users portfolio
+    try:
+        match data:
+            case {'user_id':user_id,'asset':asset} if user_id == data['user_id'] and not asset:
+                query=f"""
+                SELECT assets_name,symbol,type,quantity,(current_price * quantity) AS assets_value,username
+                FROM portfolio p
+                JOIN assets a ON a.assets_id=p.asset_id
+                JOIN users u ON u.users_id=p.user_id
+                WHERE user_id={data['user_id']}
+                """
+                crs=connect_db()
+                crs.execute(query)
+                portfolio_data=crs.fetchall()
+                columns_name=('assets_name','symbol','type','quantity','assets_value')
+                total_asset=[]
+                assets=[]
+                for value in portfolio_data:
+                    data=dict((zip(columns_name,value)))
+                    data['quantity']=float(data['quantity'])
+                    data['assets_value']=float(data['assets_value'])
+                    total_asset.append(data['assets_value'])
+                    assets.append(data)
+                portfolio={"username":portfolio_data[0][5],"total_value":sum(total_asset),"assets":assets}
+            case {'user_id':user_id,'asset':asset} if user_id==data['user_id'] and asset==data['asset']:
+                    query=f"""
+                    SELECT assets_name,symbol,type,quantity,(current_price * quantity) AS assets_value,username
+                    FROM portfolio p
+                    JOIN assets a ON a.assets_id=p.asset_id
+                    JOIN users u ON u.users_id=p.user_id
+                    WHERE user_id={data['user_id']} and assets_name='{data['asset']}'
+                    """
+                    crs=connect_db()
+                    crs.execute(query)
+                    portfolio_data=crs.fetchall()
+                    columns_name=('assets_name','symbol','type','quantity','assets_value')
+                    total_asset=[]
+                    assets=[]
+                    for value in portfolio_data:
+                        data=dict((zip(columns_name,value)))
+                        data['quantity']=float(data['quantity'])
+                        data['assets_value']=float(data['assets_value'])
+                        total_asset.append(data['assets_value'])
+                        assets.append(data)
+                    portfolio={"username":portfolio_data[0][5],"total_portfolio_value":sum(total_asset),"assets":assets}
+        
+        return json.dumps(portfolio)
+    except Exception as e:
+        print(e)
+
+def get_users_transation(data):# will refactore this later to handle not just only user transaction but all transaction done in the past in the day
         try:
             match data:
                 case {'user_id':user_id} if user_id==data['user_id']:
@@ -82,11 +151,9 @@ def get_all_users_transation(data):
                         result=dict((zip(column_name,x)))
                         result['trans_price']=float(result['trans_price'])
                         result['trans_quantity']=float(result['trans_quantity'])
-                        print(type(result['trans_price']))
-                        print(type(result['trans_quantity']))
+                        result['trans_time']=result['trans_time'].strftime('%y-%m-%d %H:%m')
                         results.append(result)
                     db_response=json.dumps(results)
-                    print(db_response)
                     return db_response
         except (Exception,SyntaxError,ValueError,IndexError) as error:
             print(error)
@@ -95,7 +162,10 @@ def process_post_request(request,conn):#extract get request from the url of the 
     if '\r\n\r\n' in request:
         headers,body=request.split('\r\n\r\n',1)
         data=json.loads(body)
-        return data
+        crs=connect_db()
+        transaction(conn,data,crs)
+        msg={"status":'OK'}
+        return json.dumps(msg)
 
 # def retreive_data_from_db(query_request):
 #     if (len(query_request['columns'])) ==0:
@@ -108,15 +178,23 @@ def connect_db(): # Connect to the data
     try:
         db_params=config()
         connect=psycopg2.connect(**db_params)
-        print('data base connected successfully')
         connect.autocommit=True
         crs=connect.cursor()
+        # query1="""
+        # select * from assets
+        # """
+        # crs.execute(query1)
+        # response1=crs.fetchall()
+        # print(response1)
+        # query2="select column_name from information_schema.columns where table_name='assets'"
+        # crs.execute(query2)
+        # response2=crs.fetchall()
+        # print(response2)
         return crs
     except psycopg2.DatabaseError as error:
         print(error)
     # finally:
     #     crs.close()
-
 def transaction(client,data,crs): # transaction function update the transaction and portfolio table
     try:
         crs.execute('BEGIN')
@@ -128,11 +206,13 @@ def transaction(client,data,crs): # transaction function update the transaction 
         """
         crs.execute(insert)
         port_quantity_query=f"""
-        SELECT quantity FROM portfolio WHERE user_id={int(data['user_id'])}
+        SELECT quantity FROM portfolio WHERE user_id={data['user_id']} and asset_id={data['asset_id']}
         """
         crs.execute(port_quantity_query)
-        quantity_response=crs.fetchall()
-        port_quantity= quantity_response[0][0] if quantity_response else 0
+        quantity_response=crs.fetchone()
+        print(f"quantity:{quantity_response}")
+        port_quantity= quantity_response[0] if quantity_response else 0
+        print(port_quantity)
         if data['trans_type'] =='SELL' and int(data['trans_quantity']) > port_quantity and quantity_response:
             raise ValueError('cannnot sell more than owned')
         quantity=(
@@ -140,6 +220,9 @@ def transaction(client,data,crs): # transaction function update the transaction 
             if data['trans_type']=='SELL'
             else port_quantity + int(data['trans_quantity'])
             )
+        print(port_quantity,int(data['trans_quantity']))
+        # print('i am here 4')
+        print(quantity)
         portfolio=f"""
         INSERT INTO portfolio(user_id,asset_id,quantity)
             VALUES({data['user_id']},{data['asset_id']},{data['trans_quantity']})
@@ -148,16 +231,16 @@ def transaction(client,data,crs): # transaction function update the transaction 
             SET quantity={quantity}
         """
         crs.execute(portfolio)
-        crs.execute('select * from portfolio')
-        fetch_port=crs.fetchall()
         delete_port='delete from portfolio where quantity=0'
         crs.execute(delete_port)
         crs.execute('COMMIT')
     except ValueError as error:
+        # print(error)
         valError={"error":str(error)}
         error_respons=json.dumps(valError)
         response(client,error_respons)
     except psycopg2.DatabaseError as error:
+        print(error)
         print("DatabaseError:",error)
         crs.execute('ROLLBACK')
 
@@ -179,8 +262,6 @@ def validate_trans_client_data(data):# validate input sent sent by client before
     return ValueError
 
 
-
-
 def validate_trans_db_data(crs,data): # validate data from the transaction table in the db to decide weather to insert new data into the transaction table or not
     check_user_asset_existence=f"""
     select users_id,assets_id 
@@ -196,11 +277,10 @@ def validate_trans_db_data(crs,data): # validate data from the transaction table
     fetch_duplicate=f"""
     select user_id,asset_id,trans_type,trans_quantity,trans_price,trans_time
     from transaction 
-    where user_id={data['user_id']} and trans_time > NOW() - INTERVAL '5 seconds'
+    where user_id={data['user_id']} and CAST(trans_time AS timestamp) > NOW()- INTERVAL '5 seconds'
     """
     crs.execute(fetch_duplicate)
     result=crs.fetchall()
-    # print(result)
     if result:
         duplicates=result
     else:
@@ -212,12 +292,9 @@ def validate_trans_db_data(crs,data): # validate data from the transaction table
         dupdata=duplist
         now=datetime.now()
         time_diff=(now-last_time).total_seconds()
-        print(f"LAST:{last_time}")
-        print(time_diff)
-
     for k,v in data.items():
         if v in dupdata and time_diff < 5:
-            raise ValueError('duplicate transaction wait 30s before trying again')
+            raise ValueError('duplicate transaction wait 5s before trying again')
         else:
             return
         
@@ -226,9 +303,6 @@ def response(client,rsp):# Response route
     rsp=cors_header + rsp
     client.send(rsp.encode('utf-8'))
     client.shutdown(socket.SHUT_RDWR)
-def assets():
-    asset="select * from assets"
-
 
 
 
