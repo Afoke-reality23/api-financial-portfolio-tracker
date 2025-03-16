@@ -2,7 +2,7 @@ const btn = document.getElementById("btn");
 console.log(btn);
 
 btn.addEventListener("click", () => {
-  fetch("http://localhost:1998/portfolio?user_id=1", {
+  fetch("http://localhost:1998/transaction?user_id=1&asset=Bitcoin", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

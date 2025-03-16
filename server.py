@@ -46,7 +46,6 @@ def handle_connections():
         # conn.close()
         server.close()
 
-
 def process_get_request(headers,conn):#process post request by extracting the request from the http POST method body
     try:
         url=headers.split(" ")[1]
@@ -61,11 +60,14 @@ def process_get_request(headers,conn):#process post request by extracting the re
             case 'assets':
                 db_response=get_all_assets()
             case 'portfolio':
+                print('i am called')
                 db_response=get_user_portfolio(data['columns'])
+                print(db_response)
         return db_response
     except Exception as error:
         print(error)
 #GET queies
+#100% done with assets endpoint
 def get_all_assets():
     crs=connect_db()
     columns=['assets_id','assets_name','symbol','type','current_price']
@@ -81,11 +83,14 @@ def get_all_assets():
     print(db_assets)
     return db_assets
 
-
+#done 100% done with portfolio endpoint
 def get_user_portfolio(data): #get users portfolio
     try:
+        print('am here')
+        print(data)
         match data:
-            case {'user_id':user_id,'asset':asset} if user_id == data['user_id'] and not asset:
+            case {'user_id':user_id} if user_id == data['user_id'] and len(data) ==1:
+                print(' first match')
                 query=f"""
                 SELECT assets_name,symbol,type,quantity,(current_price * quantity) AS assets_value,username
                 FROM portfolio p
@@ -106,7 +111,10 @@ def get_user_portfolio(data): #get users portfolio
                     total_asset.append(data['assets_value'])
                     assets.append(data)
                 portfolio={"username":portfolio_data[0][5],"total_value":sum(total_asset),"assets":assets}
+                response=json.dumps(portfolio)
+                return(response)
             case {'user_id':user_id,'asset':asset} if user_id==data['user_id'] and asset==data['asset']:
+                    print('second match')
                     query=f"""
                     SELECT assets_name,symbol,type,quantity,(current_price * quantity) AS assets_value,username
                     FROM portfolio p
@@ -117,6 +125,8 @@ def get_user_portfolio(data): #get users portfolio
                     crs=connect_db()
                     crs.execute(query)
                     portfolio_data=crs.fetchall()
+                    if len(portfolio_data) <=0:
+                        raise ValueError(f"sorry you currently dont have {data['asset']} in your portfolio click buy to own it ")
                     columns_name=('assets_name','symbol','type','quantity','assets_value')
                     total_asset=[]
                     assets=[]
@@ -127,34 +137,59 @@ def get_user_portfolio(data): #get users portfolio
                         total_asset.append(data['assets_value'])
                         assets.append(data)
                     portfolio={"username":portfolio_data[0][5],"total_portfolio_value":sum(total_asset),"assets":assets}
-        
-        return json.dumps(portfolio)
+                    response=json.dumps(portfolio)
+                    return(response)
     except Exception as e:
         print(e)
+    except psycopg2.DatabaseError as error:
+        print(error)
 
-def get_users_transation(data):# will refactore this later to handle not just only user transaction but all transaction done in the past in the day
+def get_users_transation(data):#Done with this for now REFACTOR later
+    # will refactore this later to handle not just only user transaction but all transaction done in the past in the day
         try:
-            match data:
-                case {'user_id':user_id} if user_id==data['user_id']:
-                    all_transaction=f"""
-                    SELECT assets_name,symbol,type,trans_type,trans_quantity,trans_price,trans_time
-                    FROM transaction t
-                    JOIN assets a on a.assets_id=t.asset_id
-                    WHERE user_id={data['user_id']}
-                    """
-                    crs=connect_db()
-                    crs.execute(all_transaction)
-                    rsp=crs.fetchall()
-                    results=[]
-                    column_name=('assets_name','symbol','type','trans_type','trans_quantity','trans_price','trans_time')
-                    for x in rsp:
-                        result=dict((zip(column_name,x)))
-                        result['trans_price']=float(result['trans_price'])
-                        result['trans_quantity']=float(result['trans_quantity'])
-                        result['trans_time']=result['trans_time'].strftime('%y-%m-%d %H:%m')
-                        results.append(result)
-                    db_response=json.dumps(results)
-                    return db_response
+            print(data)
+            
+            if data['user_id'] ==data['user_id'] and len(data) ==1:
+                query=f"""
+                SELECT assets_name,symbol,type,trans_type,trans_quantity,trans_price,trans_time
+                FROM transaction t
+                JOIN assets a on a.assets_id=t.asset_id
+                WHERE user_id={data['user_id']}
+                """
+            elif data['user_id']==data['user_id'] and len(data)==2:
+                print('work for asset')
+                query=f"""
+                SELECT assets_name,symbol,type,trans_type,trans_quantity,trans_price,trans_time
+                FROM transaction t
+                JOIN assets a on a.assets_id=t.asset_id
+                WHERE user_id={data['user_id']} and assets_name='{data['asset']}'
+                """
+            else:
+                query=f"""
+                SELECT assets_name,symbol,type,trans_type,trans_quantity,trans_price,trans_time
+                FROM transaction t
+                JOIN assets a on a.assets_id=t.asset_id
+                WHERE user_id={data['user_id']} and trans_type='{data['trans_type']}' assets_name='{data['asset']}'
+                """
+                print('the rest values')
+            crs=connect_db()
+            crs.execute(query)
+            rsp=crs.fetchall()
+            print(rsp)
+            if len(rsp) <= 0:
+                print('error was raised')
+                raise ValueError('sorry transaction found')
+            results=[]
+            column_name=('assets_name','symbol','type','trans_type','trans_quantity','trans_price','trans_time')
+            for x in rsp:
+                result=dict((zip(column_name,x)))
+                result['trans_price']=float(result['trans_price'])
+                result['trans_quantity']=float(result['trans_quantity'])
+                result['trans_time']=result['trans_time'].strftime('%y-%m-%d %H:%m')
+                results.append(result)
+            db_response=json.dumps(results)
+            print(db_response)
+            return db_response
         except (Exception,SyntaxError,ValueError,IndexError) as error:
             print(error)
 
