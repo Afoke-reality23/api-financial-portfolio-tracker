@@ -3,7 +3,88 @@
   margin: 0;
   padding: 0;
 }
-.users {
+body {
+  background-color: #05193a;
+  padding: 10px;
+}
+header {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 15px;
+  font-family: Roboto;
+}
+.logo {
+  color: #fff;
+}
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+}
+.menu-bar {
+  position: relative;
+  /* border: 2px solid green; */
+  height: 20px;
+  width: 30px;
+}
+.menu-stroke {
+  position: absolute;
+  display: inline-block;
+  height: 2px;
+  width: 20px;
+  background-color: #fff;
+}
+
+.menu-stroke::after {
+  content: " ";
+  display: inline-block;
+  position: absolute;
+  margin: 7px 0;
+  height: 2px;
+  width: 15px;
+  background-color: red;
+}
+.menu-stroke::before {
+  content: " ";
+  display: inline-block;
+  position: absolute;
+  margin: 14px 0;
+  height: 2px;
+  width: 10px;
+  background-color: yellow;
+}
+.search-bar {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
+}
+#search-bar {
+  outline: none;
+  display: inline-block;
+  height: 25px;
+  width: 70%;
+  border-radius: 20px;
+  border: 1px solid #fff;
+  background-color: transparent;
+  padding: 10px;
+  /* display: none; */
+  /* flex: 2 2 0; */
+}
+#search-bar::placeholder {
+  color: #fff;
+}
+.profile-icon {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  background-color: green;
+}
+main {
+  color: #fff;
+}
+table {
+  width: 100%;
+  /* border: 2; */
 }
