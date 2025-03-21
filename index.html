@@ -9,27 +9,39 @@
   <style></style>
   <script src="script.js" defer></script>
   <body>
-    <button id="btn">get</button>
-    <table>
-      <thead>
+    <header>
+      <div class="logo"><span>CryptoFolio</span></div>
+      <div class="top-bar">
+        <div class="menu-bar">
+          <span class="menu-stroke"></span>
+        </div>
+        <div class="search-bar">
+          <input
+            type="search"
+            name=""
+            id="search-bar"
+            placeholder="search for asset"
+          />
+        </div>
+        <div class="user-profile"><div class="profile-icon"></div></div>
+      </div>
+    </header>
+    <main>
+      <button id="btn">get</button>
+      <table border="2">
         <caption>
           Crypto,Stock&NFTs
         </caption>
-        <tr>
-          <th>#</th>
-          <th>Market cap</th>
-          <th>Price</th>
-          <th>24h %</th>
-        </tr>
-      </thead>
-      <tbody class="tbody">
-        <!-- <tr>
-          <td class="id"></td>
-          <td class="coin_log_symbol"></td>
-          <td class="price"></td>
-          <td class="twenty_four_hr"></td>
-        </tr> -->
-      </tbody>
-    </table>
+        <thead>
+          <tr class="row1">
+            <th>#</th>
+            <th>Market cap</th>
+            <th>Price</th>
+            <th>24h %</th>
+          </tr>
+        </thead>
+        <tbody class="tbody"></tbody>
+      </table>
+    </main>
   </body>
 </html>

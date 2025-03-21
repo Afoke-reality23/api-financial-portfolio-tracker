@@ -6,6 +6,7 @@ from urllib.parse import urlparse,parse_qs
 from datetime import datetime
 from decimal import Decimal
 import requests
+import threading
 
 server = socket.socket()
 port = 1998
@@ -32,23 +33,20 @@ preflight_headers=(
 
 def handle_connections():
     try:
+        crs=connect_db()
+        crs.execute('select * from assets')
+        initial_assets_fetch=crs.fetchall()
+        if len(initial_assets_fetch) ==0:
+            assets=fetch_assets()
+            for asset in assets:
+                asset_argument=",".join(['%s'] * len(asset['asset_info']['av']))
+                query=f"INSERT INTO assets({asset['asset_info']['ac']}) values({asset_argument})"
+                crs.execute(query,(asset['asset_info']['av']))
+                descr_argument=",".join(['%s'] * len(asset['description']['dv']))
+                des=f"INSERT INTO assets_description({asset['description']['dc']}) values({descr_argument})"
+                crs.execute(des,(asset['description']['dv']))
+                print('last query executed')
         while True:
-            crs=connect_db()
-            crs.execute('select * from assets')
-            initial_assets_fetch=crs.fetchall()
-            print(initial_assets_fetch)
-            if initial_assets_fetch:
-                print('i am here')
-                print(initial_assets_fetch)
-                continue
-            else:
-                assets=fetch_assets()
-                for asset in assets:
-                    query=f"""
-                    insert into assets(assets_id,assets_name,symbol,type,price,market_cap,percentage_change_24h)
-                    values({asset['assets_info']['asset_id']},'{asset['assets_info']['assets_name']}','{asset['assets_info']['symbol']}','{asset['assets_info']['type']}',{asset['assets_info']['price']},{asset['assets_info']['market_cap']},{asset['assets_info']['percent_change_24h']})
-                    """
-                    crs.execute(query)
             conn, addr = server.accept()
             request=conn.recv(1024).decode()
             headers=request.splitlines()[0]
@@ -60,7 +58,6 @@ def handle_connections():
     except KeyboardInterrupt as error:
         print(error)
     finally:
-        # conn.close()
         server.close()
 
 def process_get_request(headers,conn):#process post request by extracting the request from the http POST method body
@@ -87,18 +84,19 @@ def process_get_request(headers,conn):#process post request by extracting the re
 #100% done with assets endpoint
 def get_all_assets():
     crs=connect_db()
-    columns=['assets_id','assets_name','symbol','type','price']
-    assets_query="select * from assets"
+    columns=['id','assets_name','symbol','type','price','market_cap','logo','percent_change_24h']
+    assets_query="select id,assets_name,symbol,type,price,market_cap,logo,percent_change_24h from assets limit 50"
     crs.execute(assets_query)
     assets=crs.fetchall()
-    print(assets)
+    # print(assets)
     all_assets=[]
     for asset in assets:
         data=dict((zip(columns,asset)))
         data['price']=float(data['price'])
+        data['market_cap']=float(data['market_cap'])
+        data['percent_change_24h']=float(data['percent_change_24h'])
         all_assets.append(data)
     db_assets=json.dumps(all_assets)
-    print(db_assets)
     return db_assets
 
 #done 100% done with portfolio endpoint
@@ -359,29 +357,61 @@ def response(client,rsp):# Response route
 
 
 def fetch_assets():
-    url='https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
-    params={"start":"1","limit":"3","convert":"USD"}
+    asset_url='https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
+    id_url='https://pro-api.coinmarketcap.com/v1/cryptocurrency/info'
+    asset_params={"start":"301","limit":"400","convert":"USD"}
     headers={"X-CMC_PRO_API_KEY":"15d50cf2-5669-4a88-92c9-b612e72d415b",
              "Accept":"application/json",
              "Accept-Encoding":"deflate,gzip"}
-    response=requests.get(url,headers=headers,params=params)
+    response=requests.get(asset_url,headers=headers,params=asset_params)
     if response.status_code==200:
         responses=response.json()
         datas=responses['data']
-        # quote=datas[0]['quote']
-        # # quote=datas['quote']
-        # for data in datas:
-        #     print(data)
-        #     quote=data['quote']
-        #     print(quote)
+        # print(datas)
     assets=[]
+    asset_ids=[]
     for data in datas:
-        # print(data['quote'])
-        asset={'assets_info':{'asset_id':data['id'],'assets_name':data['name'],'symbol':data['symbol'],'type':'crytpo','price':data['quote']['USD']['price'],'market_cap':data['quote']['USD']['market_cap'],'percent_change_24h':data['quote']['USD']['percent_change_24h']},
-        'description':{'asset_id':data['id'],'description':'blabla for now','circulating_supply':data['circulating_supply'],'total_supply':data['total_supply'],'category':'','max_supply':data['max_supply'],'volume_24h':data['quote']['USD']['volume_24h'],'volume_change_24h':data['quote']['USD']['volume_change_24h'], 'percent_change_1h':data['quote']['USD'][ 'percent_change_1h'],'percent_change_24h':data['quote']['USD']['percent_change_24h'],'percent_change_7d':data['quote']['USD']['percent_change_7d'],'percent_change_30d':data['quote']['USD']['percent_change_30d'],'percent_change_60d':data['quote']['USD']['percent_change_60d'],'percent_change_90d':data['quote']['USD']['percent_change_90d'], 'market_cap_dominance':data['quote']['USD'][ 'market_cap_dominance'],'fully_diluted_market_cap':data['quote']['USD']['fully_diluted_market_cap'], 'last_updated':datetime.strptime(data['quote']['USD'][ 'last_updated'],'%Y-%m-%dT%H:%M:%S.%fZ')}
-        }
+        asset_iden=str(data['id'])
+        asset={asset_iden:{'asset_info':{'assets_id':data['id'],'assets_name':data['name'],'symbol':data['symbol'],'type':'crytpo','price':data['quote']['USD']['price'],'market_cap':data['quote']['USD']['market_cap'],'percent_change_24h':data['quote']['USD']['percent_change_24h']},
+        'description':{'asset_description_id':data['id'],'description':'','circulating_supply':data['circulating_supply'],'total_supply':data['total_supply'],'category':'','max_supply':data['max_supply'],'volume_24h':data['quote']['USD']['volume_24h'],'volume_change_24h':data['quote']['USD']['volume_change_24h'], 'percent_change_1h':data['quote']['USD'][ 'percent_change_1h'],'percent_change_24h':data['quote']['USD']['percent_change_24h'],'percent_change_7d':data['quote']['USD']['percent_change_7d'],'percent_change_30d':data['quote']['USD']['percent_change_30d'],'percent_change_60d':data['quote']['USD']['percent_change_60d'],'percent_change_90d':data['quote']['USD']['percent_change_90d'], 'market_cap_dominance':data['quote']['USD'][ 'market_cap_dominance'],'fully_diluted_market_cap':data['quote']['USD']['fully_diluted_market_cap'], 'last_updated':datetime.strptime(data['quote']['USD'][ 'last_updated'],'%Y-%m-%dT%H:%M:%S.%fZ'),'link':''}
+        }}
         assets.append(asset)
-    print(assets)
-    return assets
-        
+        asset_ids.append(str(data['id']))
+    param={"id":",".join(asset_ids)}
+    asset_id_info=requests.get(id_url,headers=headers,params=param)
+    if asset_id_info.status_code==200:
+        id_data=asset_id_info.json()
+        ids=id_data['data']
+        real_assets=[]
+        for id in ids:
+            for asset in assets:
+                if id in asset:
+                    asset[id]['asset_info']['logo']=ids[id]['logo']
+                    asset[id]['description']['description']=ids[id]['description']
+                    asset[id]['description']['category']=ids[id]['category']
+                    asset[id]['description']['link']= ids[id]['urls']['website'][0] if  ids[id]['urls']['website'] else " "
+                    ac=",".join(asset[id]['asset_info'].keys())
+                    av=tuple(asset[id]['asset_info'].values())
+                    dc=",".join(asset[id]['description'].keys())
+                    dv=tuple(asset[id]['description'].values())
+                    asset={'asset_info':{'ac':ac,'av':av},'description':{'dc':dc,'dv':dv}}
+                    real_assets.append(asset)
+        print(real_assets)
+        return real_assets
+# def update_assets():
+#     crs=connect_db()
+#     assets=fetch_assets()
+#     query=f"""
+#     updat assets
+#     set price=%s,percent_change_24h=%s
+#     where symbol=%s
+#     """
+#     for asset in assets:
+#         symbol=asset['symbol']
+#         price=asset['price']
+#         percent=asset['percent_change_24h']
+#     crs.execute(query,(price,percent,symbol))
+
+# threading.Timer(300,update_assets).start()
+
 handle_connections()
