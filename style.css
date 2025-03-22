@@ -86,5 +86,24 @@ main {
 }
 table {
   width: 100%;
+  border-collapse: collapse;
+  background-color: #030e25;
+  padding: 15px;
+  border-radius: 5px;
   /* border: 2; */
+}
+th,
+td {
+  padding: 15px 20px;
+  text-align: left;
+}
+tr {
+  border-bottom: 1px solid white;
+}
+tr:hover {
+  background-color: rgb(126, 221, 221);
+  color: black;
+}
+tr > td:last-child {
+  color: red;
 }
