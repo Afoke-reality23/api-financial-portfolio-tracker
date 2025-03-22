@@ -34,13 +34,13 @@ function updateTable(datas) {
     for (data of datas) {
       console.log(data);
       const row = document.createElement("tr");
-      const id = document.createElement("th");
-      const marketCap = document.createElement("th");
+      const id = document.createElement("td");
+      const marketCap = document.createElement("td");
       const iconSymbol = document.createElement("div");
       const symbol = document.createElement("span");
       const icon = document.createElement("img");
-      const price = document.createElement("th");
-      const percentChange24h = document.createElement("th");
+      const price = document.createElement("td");
+      const percentChange24h = document.createElement("td");
       percentChange24h.textContent =
         Number((data.percent_change_24h / 100).toPrecision(3)) + "%";
       data.percent_change_24h;
