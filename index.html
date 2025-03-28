@@ -4,44 +4,104 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="footer.css" />
     <title>Document</title>
   </head>
   <style></style>
   <script src="script.js" defer></script>
   <body>
-    <header>
-      <div class="logo"><span>CryptoFolio</span></div>
-      <div class="top-bar">
-        <div class="menu-bar">
-          <span class="menu-stroke"></span>
-        </div>
-        <div class="search-bar">
+    <div class="container">
+      <header>
+        <div class="logo">CryptoFolio</div>
+        <img src="burger-menu-svgrepo-com.svg" class="hamburger" alt="" />
+        <nav class="nav-bar">
+          <div class="logo-cls-menu">
+            <span class="logo">CryptoFolio</span>
+            <img src="close-x-svgrepo-com.svg" class="cls-menu" alt="" />
+          </div>
+          <ul>
+            <li><a href="">Home</a></li>
+            <li><a href="">FAQ</a></li>
+            <li><a href="">Contact Us</a></li>
+            <li><a href="">Privacy Policy</a></li>
+            <li><a href="">Terms of Service</a></li>
+          </ul>
+          <div class="signup-login">
+            <a href="signup.html">Create account</a>
+            <a href="">Login</a>
+          </div>
+          <div class="theme">
+            <button>Light</button>
+            <button class="active">Dark</button>
+            <button disabled>System</button>
+          </div>
+        </nav>
+        <div class="search-bar-user">
           <input
             type="search"
             name=""
             id="search-bar"
-            placeholder="search for asset"
+            placeholder="search asset"
           />
+          <div class="user-profile"></div>
         </div>
-        <div class="user-profile"><div class="profile-icon"></div></div>
-      </div>
-    </header>
-    <main>
-      <button id="btn">get</button>
-      <table>
-        <caption>
-          Crypto,Stock&NFTs
-        </caption>
-        <thead>
-          <tr class="row1">
-            <th>#</th>
-            <th>Market cap</th>
-            <th>Price</th>
-            <th>24h %</th>
-          </tr>
-        </thead>
-        <tbody class="tbody"></tbody>
-      </table>
-    </main>
+      </header>
+      <main>
+        <!-- <div class="filter">
+          <span>filter:</span>
+          <div class="price">Price</div>
+          <div class="marketCap">Market Cap</div>
+          <div class="percentChange">Percent Change</div>
+        </div> -->
+        <table>
+          <caption>
+            Crypto,Stock&NFTs
+          </caption>
+          <thead>
+            <tr class="column-row">
+              <th>#</th>
+              <th>Market cap</th>
+              <th>Price</th>
+              <th>24h %</th>
+            </tr>
+          </thead>
+          <tbody class="tbody"></tbody>
+        </table>
+      </main>
+      <footer>
+        <div class="qlink-information">
+          <div class="qlinks">
+            <div>Quick Links</div>
+            <div class="links">
+              <a href="">Home</a>
+              <a href="">Transaction</a>
+              <a href="">Setting</a>
+            </div>
+          </div>
+          <div class="Support & Information">
+            <div class="sui">Support & Information</div>
+            <div class="links">
+              <a href="">FAQ</a>
+              <a href="">Contact Us</a>
+              <a href="">Privacy Policy</a>
+              <a href="">Terms of Service</a>
+            </div>
+          </div>
+        </div>
+        <div class="socal-credit">
+          <div class="credit">
+            <div>Credit</div>
+            <div class="platform">
+              <div>Coinmarket</div>
+              <div>Railway</div>
+            </div>
+          </div>
+          <div class="slink">
+            <div>Social Links</div>
+            <div class=""></div>
+          </div>
+        </div>
+      </footer>
+    </div>
   </body>
 </html>

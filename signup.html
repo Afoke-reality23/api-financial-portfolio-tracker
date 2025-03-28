@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="signup.css" />
+    <title>Sign up</title>
+  </head>
+  <body>
+    <form action="" method="post">
+      <div class="signup">
+        <span class="sign">Sign</span>
+        <span class="up">Up</span>
+      </div>
+      <div class="form-div">
+        <label for="fname">
+          <span>Firt Name</span>
+          <input
+            type="text"
+            name="f-name"
+            id="fname"
+            placeholder="first name"
+            required
+          />
+        </label>
+        <label for="lname">
+          <span>Last Name</span>
+          <input
+            type="text"
+            name="lname"
+            id="lname"
+            placeholder="Last name"
+            required
+          />
+        </label>
+        <div class="gender">
+          <label for="gender"
+            >Male
+            <input type="radio" name="gender" id="male" required />
+          </label>
+          <label for="female"
+            >Female
+            <input type="radio" name="gender" id="female" required />
+          </label>
+        </div>
+        <label for="username">
+          <span>User name</span>
+          <input
+            type="text"
+            name="username"
+            id="username"
+            required
+            placeholder="username"
+          />
+        </label>
+        <label for="password"
+          ><span>password</span>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="password"
+            required
+        /></label>
+      </div>
+      <label for="terms">
+        <input
+          type="checkbox"
+          name="terms-and-condition"
+          id="terms"
+          required
+        />By clicking mean you've have read and agree to our Termsn and
+        Condidion
+      </label>
+      <button type="submit" id="signup">Sign Up</button>
+      <div class="login">
+        <span>Already have an account?</span>
+        <a href="">login</a>
+      </div>
+    </form>
+  </body>
+</html>
