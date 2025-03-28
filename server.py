@@ -24,7 +24,7 @@ cors_header = (
     "\r\n"  
 )
 preflight_headers=(
-    "HTTP/1.1 204 NO CONTENT\r\n"
+    "HTTP/1.1 204 NO CONTENT\r\n" 
     "Access-Control-Allow-Methods:GET,POST,OPTIONS\r\n"
     "Access-Control-Allow-Headers:Content-Type\r\n"
     "Access-Control-Allow-Origin:*\r\n"
@@ -90,8 +90,8 @@ def process_get_request(headers,conn):#process post request by extracting the re
 #100% done with assets endpoint
 def get_all_assets():
     crs=connect_db()
-    columns=['id','assets_name','symbol','type','price','market_cap','percent_change_24h']
-    assets_query="select id,assets_name,symbol,type,price,market_cap,percent_change_24h from assets limit 50"
+    columns=['id','assets_name','symbol','type','price','market_cap','percent_change_24h','logo']
+    assets_query="select id,assets_name,symbol,type,price,market_cap,percent_change_24h,logo from assets limit 50"
     crs.execute(assets_query)
     assets=crs.fetchall()
     all_assets=[]

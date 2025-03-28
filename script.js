@@ -1,78 +1,93 @@
-const btn = document.getElementById("btn");
-const tableBody = document.querySelector(".tbody");
-console.log(tableBody);
-
-// const num = 138369849;
-// num3 = Math.floor(num, 2);
-
-btn.addEventListener("click", () => {
-  fetch("http://localhost:1998/assets", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
-    .then((response) => {
-      if (response.ok) {
-        console.log("it works");
-        return response.json();
-      } else {
-        console.log("request failed with status:", response.status);
-      }
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btn");
+  const tableBody = document.querySelector(".tbody");
+  const hamburger = document.querySelector(".hamburger");
+  const clsBtn = document.querySelector(".cls-menu");
+  const menu = document.querySelector(".nav-bar");
+  hamburger.addEventListener("click", () => (menu.style.display = "flex"));
+  clsBtn.addEventListener("click", () => (menu.style.display = "none"));
+  fetchAssets();
+  function fetchAssets() {
+    fetch("http://192.168.100.2:1998/assets", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-    .then((data) => {
-      console.log(data);
-      updateTable(data);
-    })
-    .catch((error) => {
-      console.error("fetch error", error);
-    });
-});
-
-function updateTable(datas) {
-  try {
-    for (data of datas) {
-      console.log(data);
-      const row = document.createElement("tr");
-      const id = document.createElement("td");
-      const marketCap = document.createElement("td");
-      const iconSymbol = document.createElement("div");
-      const symbol = document.createElement("span");
-      const icon = document.createElement("img");
-      const price = document.createElement("td");
-      const percentChange24h = document.createElement("td");
-      percentChange24h.textContent =
-        Number((data.percent_change_24h / 100).toPrecision(3)) + "%";
-      data.percent_change_24h;
-      // icon.src = data.logo;
-      id.textContent = data.id;
-      symbol.textContent = data.symbol;
-      price.textContent = Number(data.price.toPrecision(7)).toLocaleString(
-        "en-US",
-        { style: "currency", currency: "USD" }
-      );
-      iconSymbol.appendChild(icon);
-      iconSymbol.appendChild(symbol);
-      marketCap.appendChild(iconSymbol);
-      row.appendChild(id);
-      row.appendChild(marketCap);
-      row.appendChild(price);
-      row.appendChild(percentChange24h);
-      tableBody.appendChild(row);
-    }
-  } catch (error) {
-    console.error(error);
+      .then((response) => {
+        if (response.ok) {
+          console.log("it works");
+          return response.json();
+        } else {
+          console.log("request failed with status:", response.status);
+        }
+      })
+      .then((data) => {
+        console.log(data);
+        updateTable(data);
+      })
+      .catch((error) => {
+        console.error("fetch error", error);
+      });
   }
-}
+  function updateTable(datas) {
+    try {
+      let incrementId = 1;
+      for (data of datas) {
+        console.log(data);
+        const row = document.createElement("tr");
+        const id = document.createElement("td");
+        const marketCap = document.createElement("td");
+        const iconSymbol = document.createElement("div");
+        const icon = document.createElement("img");
+        const symbolMarketCap = document.createElement("div");
+        const symbol = document.createElement("span");
+        const marketCapNum = document.createElement("span");
+        const price = document.createElement("td");
+        const percentChange24h = document.createElement("td");
+        id.textContent = incrementId++;
+        icon.src = data.logo.trim();
+        symbol.textContent = data.symbol.trim();
+        marketCapNum.textContent = roundMarketCap(data.market_cap).trim();
+        percentChange24h.textContent =
+          Number(data.percent_change_24h.toPrecision(3)) + "%".trim();
+        if (data.percent_change_24h < 0) {
+          percentChange24h.style.color = "red";
+        } else {
+          percentChange24h.style.color = "green";
+        }
 
-// function data.percent_change_24hvalues) {
-//   console.log(values);
-//   if (values > 1e12) {
-//     console.log("i am here ");
-//     const value = (values / 1e12).toPrecision(2) + "T";
-//     console.log(value);
-//   }
-//   // if (values >= 1e9) return (values / 1e12).toPrecision(2) + "B";
-//   // if (values >= 1e6) return (values / 1e6).toPrecision(3) + "M";
-//   // if (values >= 1e6) return (values / 1e5).toPrecision(3) + "k";
-// }
+        // data.percent_change_24h;
+        // icon.src = data.logo;
+        symbolMarketCap.textContent = data.symbolMarketCap;
+        price.textContent = Number(data.price.toPrecision(7)).toLocaleString(
+          "en-US",
+          { style: "currency", currency: "USD" }
+        );
+        symbolMarketCap.appendChild(symbol);
+        symbolMarketCap.classList.add("symbol-market-cap");
+        symbolMarketCap.appendChild(marketCapNum);
+        iconSymbol.appendChild(icon);
+        iconSymbol.appendChild(symbolMarketCap);
+        iconSymbol.classList.add("icon-symbol");
+        marketCap.appendChild(iconSymbol);
+        row.appendChild(id);
+        row.classList.add("row");
+        row.appendChild(marketCap);
+        row.appendChild(price);
+        row.appendChild(percentChange24h);
+        tableBody.appendChild(row);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function roundMarketCap(value) {
+    if (value > 1e12) return (value / 1e12).toPrecision(2) + "T";
+    if (value > 1e9) return (value / 1e9).toPrecision(3) + "B";
+    if (value > 1e6) return (value / 1e6).toPrecision(3) + "M";
+    if (value > 1e5) return (value / 1e5).toPrecision(3) + "K";
+    if ((value = 1e4)) return value.toPrecision(1) + "K";
+  }
+});
