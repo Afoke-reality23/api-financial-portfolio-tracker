@@ -141,6 +141,7 @@ th {
   border: none;
   padding: 15px 0;
   border-collapse: collapse;
+  text-align: left;
 }
 td,
 tr {

@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   clsBtn.addEventListener("click", () => (menu.style.display = "none"));
   fetchAssets();
   function fetchAssets() {
-    fetch("http://192.168.100.2:1998/assets", {
+    fetch("http://localhost:1998/assets", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log(data);
         const row = document.createElement("tr");
         const id = document.createElement("td");
+        const asset = document.createElement("td");
         const marketCap = document.createElement("td");
         const iconSymbol = document.createElement("div");
         const icon = document.createElement("img");
@@ -46,8 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const price = document.createElement("td");
         const percentChange24h = document.createElement("td");
         id.textContent = incrementId++;
-        icon.src = data.logo.trim();
-        symbol.textContent = data.symbol.trim();
+        asset.textContent = data.assets_name;
+        icon.src = data.logo;
+        symbol.textContent = data.symbol;
         marketCapNum.textContent = roundMarketCap(data.market_cap).trim();
         percentChange24h.textContent =
           Number(data.percent_change_24h.toPrecision(3)) + "%".trim();
@@ -56,9 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           percentChange24h.style.color = "green";
         }
-
-        // data.percent_change_24h;
-        // icon.src = data.logo;
         symbolMarketCap.textContent = data.symbolMarketCap;
         price.textContent = Number(data.price.toPrecision(7)).toLocaleString(
           "en-US",
@@ -72,6 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
         iconSymbol.classList.add("icon-symbol");
         marketCap.appendChild(iconSymbol);
         row.appendChild(id);
+        row.appendChild(asset);
         row.classList.add("row");
         row.appendChild(marketCap);
         row.appendChild(price);
