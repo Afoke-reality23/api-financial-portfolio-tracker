@@ -7,6 +7,8 @@ from datetime import datetime
 from decimal import Decimal
 import requests
 import threading
+import asyncio
+import httpx
 
 server = socket.socket()
 port = 1998
@@ -54,36 +56,42 @@ def handle_connections():
                 # print('last query executed')
         while True:
             conn, addr = server.accept()
-            request=conn.recv(1024).decode()
-            headers=request.splitlines()[0]
-            if headers.startswith('OPTIONS'):#Handle preflight request and cors header issues
+            data=conn.recv(1024).decode()
+            if data.startswith('OPTIONS'):#Handle preflight request and cors header issues
                 conn.send(preflight_headers.encode('utf-8'))
                 continue
-            request=process_get_request(headers,conn) if request.startswith('GET') else process_post_request(request,conn) 
-            response(conn,request)
+            server_response=process_request(conn,data)
+            response(conn,server_response)
     except KeyboardInterrupt as error:
         print(error)
     finally:
         server.close()
 
-def process_get_request(headers,conn):#process post request by extracting the request from the http POST method body
+def process_request(client,request):#process all http request
     try:
-        url=headers.split(" ")[1]
-        parse_url=urlparse(url)
-        table_name=parse_url.path.replace('/'," ").strip()
-        query_param=parse_qs(parse_url.query)
-        data={'table_name':table_name,'columns':{k:v[0] for k,v in query_param.items()}}
-        match data['table_name']:
-            case 'transaction':
-                 print('transaction called')
-                 db_response=get_users_transation(data['columns'])
-            case 'assets':
-                db_response=get_all_assets()
-            case 'portfolio':
-                print('i am called')
-                db_response=get_user_portfolio(data['columns'])
-                print(db_response)
-        return db_response
+        headers,body=request.split('\r\n\r\n',1)
+        if headers.startswith('GET'):
+            header=headers.splitlines()[0]
+            url=header.split(' ')[1]
+            parse_url=urlparse(url)
+            table_name=parse_url.path.replace('/'," ").strip()
+            query_param=parse_qs(parse_url.query)
+            data={'table_name':table_name,'columns':{k:v[0] for k,v in query_param.items()}}
+            match data['table_name']:
+                case 'transaction':
+                     db_response=get_users_transation(data['columns'])
+                case 'assets':
+                    db_response=get_all_assets()
+                case 'portfolio':
+                    db_response=get_user_portfolio(data['columns'])
+            return db_response
+        else:
+            data=json.loads(body)
+            crs=connect_db()
+            transaction(client,data,crs)
+            msg={"status":'OK'}
+        return json.dumps(msg)
+            
     except Exception as error:
         print(error)
 #GET queies
@@ -107,11 +115,8 @@ def get_all_assets():
 #done 100% done with portfolio endpoint
 def get_user_portfolio(data): #get users portfolio
     try:
-        print('am here')
-        print(data)
         match data:
             case {'user_id':user_id} if user_id == data['user_id'] and len(data) ==1:
-                print(' first match')
                 query=f"""
                 SELECT assets_name,symbol,type,quantity,(price * quantity) AS assets_value,username
                 FROM portfolio p
@@ -135,7 +140,6 @@ def get_user_portfolio(data): #get users portfolio
                 response=json.dumps(portfolio)
                 return(response)
             case {'user_id':user_id,'asset':asset} if user_id==data['user_id'] and asset==data['asset']:
-                    print('second match')
                     query=f"""
                     SELECT assets_name,symbol,type,quantity,(price * quantity) AS assets_value,username
                     FROM portfolio p
@@ -218,10 +222,7 @@ def process_post_request(request,conn):#extract get request from the url of the 
     if '\r\n\r\n' in request:
         headers,body=request.split('\r\n\r\n',1)
         data=json.loads(body)
-        crs=connect_db()
-        transaction(conn,data,crs)
-        msg={"status":'OK'}
-        return json.dumps(msg)
+        
 
 # def retreive_data_from_db(query_request):
 #     if (len(query_request['columns'])) ==0:

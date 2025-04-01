@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       })
       .then((data) => {
-        console.log(data);
+        // console.log(data);
         updateTable(data);
       })
       .catch((error) => {
@@ -34,8 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       let incrementId = 1;
       for (data of datas) {
-        console.log(data);
+        // console.log(data);
         const row = document.createElement("tr");
+        row.classList.add("row");
         const id = document.createElement("td");
         const asset = document.createElement("td");
         const marketCap = document.createElement("td");
@@ -48,9 +49,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const percentChange24h = document.createElement("td");
         id.textContent = incrementId++;
         asset.textContent = data.assets_name;
-        icon.src = data.logo;
+        // icon.src = data.logo;
         symbol.textContent = data.symbol;
         marketCapNum.textContent = roundMarketCap(data.market_cap).trim();
+        // marketCap.setAttribute("colspan", "3");
         percentChange24h.textContent =
           Number(data.percent_change_24h.toPrecision(3)) + "%".trim();
         if (data.percent_change_24h < 0) {
@@ -72,17 +74,56 @@ document.addEventListener("DOMContentLoaded", () => {
         marketCap.appendChild(iconSymbol);
         row.appendChild(id);
         row.appendChild(asset);
-        row.classList.add("row");
         row.appendChild(marketCap);
         row.appendChild(price);
         row.appendChild(percentChange24h);
         tableBody.appendChild(row);
+        // return row;
       }
     } catch (error) {
       console.error(error);
     }
   }
-
+  //add eventlistener to row to view asset details
+  function fetchAssetDetail(fetchAssetDetail) {
+    fetch(`http://localhost:1998/assets_description?id=${assetId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error({
+            errorCode: response.status,
+            mesage: "failed to fetch resources",
+          });
+        }
+      })
+      .then((data) => {
+        console.log(data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+  console.log(tableBody);
+  const observer = new MutationObserver((mutaionList) => {
+    const rows = document.querySelectorAll(".tbody .row");
+    rows.forEach((row) => {
+      row.addEventListener("click", () => {
+        // console.log("row is clicked");
+        const tds = row.querySelectorAll("td");
+        assetId = tds[0].textContent;
+        console.log(assetId);
+        // console.log(typeof intAssetId);
+        // fetchAssetDetail();
+      });
+    });
+  });
+  observer.observe(tableBody, { childList: true, subtree: true });
   function roundMarketCap(value) {
     if (value > 1e12) return (value / 1e12).toPrecision(2) + "T";
     if (value > 1e9) return (value / 1e9).toPrecision(3) + "B";

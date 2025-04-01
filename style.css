@@ -119,12 +119,15 @@ main {
 }
 table img {
   max-width: 30px;
+  max-height: 30px;
+  border-radius: 50%;
 }
 table {
   width: 100%;
-  border: none;
+  /* border: 1px solid green; */
   border-collapse: collapse;
 }
+
 caption {
   font-size: 16px;
   padding: 10px;
@@ -141,234 +144,22 @@ th {
   border: none;
   padding: 15px 0;
   border-collapse: collapse;
-  text-align: left;
+  /* text-align: left; */
 }
 td,
 tr {
   padding: 10px;
-}
-tr {
-  border-bottom: 1px solid white;
-}
-/* header {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  font-family: Roboto;
-  padding: 10px;
-}
-.logo {
-  color: #fff;
-  font-size: 20px;
-  font-family: "Courier New", Courier, monospace;
-}
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #fff;
-  padding: 10px 0;
-}
-.menu-bar {
-  position: relative;
-  height: 20px;
-  width: 30px;
-}
-.hamburger {
-  position: absolute;
-  display: inline-block;
-  height: 2px;
-  width: 20px;
-  background-color: #fff;
-}
-
-.hamburger::after {
-  content: " ";
-  display: inline-block;
-  position: absolute;
-  margin: 7px 0;
-  height: 2px;
-  width: 15px;
-  background-color: #fff;
-}
-.hamburger::before {
-  content: " ";
-  display: inline-block;
-  position: absolute;
-  margin: 14px 0;
-  height: 2px;
-  width: 10px;
-  background-color: #fff;
-}
-.menu {
-  display: none;
-  flex-direction: column;
-  gap: 20px;
-  height: 100vh;
-  background-color: #fff;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  z-index: 9999;
-  padding: 20px;
-  background-color: #030e20;
-}
-.toggle-menu {
-  display: none;
-}
-.logo-close-menu {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-}
-.close-menu {
-  display: block;
-  height: 30px;
-  width: 8px;
-  transform: rotate(210deg);
-  background-color: #fff;
-}
-.close-menu::after {
-  content: " ";
-  display: block;
-  height: 30px;
-  width: 5px;
-  transform: rotate(260deg);
-  background-color: #fff;
-}
-.nav-menu {
-  display: flex;
-  flex-direction: column;
-  background-color: rgba(9, 18, 32, 0.5);
-}
-.nav-menu a {
-  font-size: 1.3rem;
-  color: #fff;
-  padding: 15px 10px;
-  border-bottom: 1px solid #109ef2;
-}
-.signup-login {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 3rem;
-}
-.signup-login button {
-  border: none;
-  border-radius: 5px;
-}
-.signup-login > button a {
-  display: block;
-  color: #fff;
-  border-radius: 5px;
-  background-color: #1410f2;
-  text-align: center;
-  padding: 10px;
-  font-family: Roboto;
-  font-size: 18px;
-}
-.theme {
-  display: flex;
-  justify-content: space-between;
-  background-color: rgba(77, 72, 72, 0.466);
-  gap: 10px;
-  margin-top: 30px;
-  border-radius: 5px;
-}
-.theme button {
-  padding: 10px;
-  text-align: center;
-  border: none;
-  font-size: 18px;
-  color: #aca3a3;
-  margin: 5px;
-  width: 150px;
-  background-color: transparent;
-}
-.theme .active {
-  background-color: rgba(16, 16, 17, 0.712);
-  border-radius: 5px;
-}
-.search-bar {
-  flex: 1 1 0;
-  display: flex;
-  justify-content: center;
-}
-#search-bar {
-  outline: none;
-  display: inline-block;
-  height: 25px;
-  width: 70%;
-  border-radius: 10px;
-  border: 1px solid #fff;
-  background-color: transparent;
-  padding: 10px;
-}
-#search-bar::placeholder {
-  color: #fff;
-}
-.profile-icon {
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  border: 1px solid #fff;
-  background-color: green;
-}
-main {
-  margin-bottom: 5em;
-}
-.filter {
-  display: flex;
-  justify-content: space-around;
-  margin: 20px 0;
-  background-color: #393a49;
-  font-size: 12px;
-}
-.filter > * {
-  padding: 10px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #030e25;
-  border-radius: 5px;
-  font-size: 10px;
-}
-caption {
-  padding: 10px 0;
-  margin-bottom: 20px;
-  font-size: 20px;
-  font-size: 14px;
-}
-.column_row {
-  position: sticky;
-  top: 0;
-  background-color: #030e25;
-}
-th,
-td {
-  padding: 15px 20px;
   text-align: left;
 }
 tr {
   border-bottom: 1px solid white;
 }
-tr:hover {
-  background-color: rgb(126, 221, 221);
-  color: black;
-}
 
-.icon-symbol,
+.icon-symbol {
+  display: flex;
+  justify-content: left;
+}
 .symbol-market-cap {
   display: flex;
-  align-content: center;
-  align-items: center;
-}
-.symbol-market-cap {
   flex-direction: column;
 }
-.icon-symbol img {
-  width: 20px;
-  border-radius: 50%;
-} */
