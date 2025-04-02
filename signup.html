@@ -6,8 +6,9 @@
     <link rel="stylesheet" href="signup.css" />
     <title>Sign up</title>
   </head>
+  <script src="signup.js"></script>
   <body>
-    <form action="" method="post">
+    <form action="http://localhost:1998" method="post">
       <div class="signup">
         <span class="sign">Sign</span>
         <span class="up">Up</span>
@@ -36,11 +37,17 @@
         <div class="gender">
           <label for="gender"
             >Male
-            <input type="radio" name="gender" id="male" required />
+            <input type="radio" value="Male" name="gender" id="male" required />
           </label>
           <label for="female"
             >Female
-            <input type="radio" name="gender" id="female" required />
+            <input
+              type="radio"
+              value="Female"
+              name="gender"
+              id="female"
+              required
+            />
           </label>
         </div>
         <label for="username">
@@ -68,6 +75,7 @@
           type="checkbox"
           name="terms-and-condition"
           id="terms"
+          value="Agreed"
           required
         />By clicking mean you've have read and agree to our Termsn and
         Condidion

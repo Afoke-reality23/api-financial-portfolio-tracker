@@ -44,12 +44,11 @@ def handle_connections():
         else:
             print('original fetch')
             assets=fetch_assets()
-            # print('i am here')
             for asset in assets:
-                # print('asset executed')
                 asset_argument=",".join(['%s'] * len(asset['asset_info']['av']))
                 query=f"INSERT INTO assets({asset['asset_info']['ac']}) values({asset_argument})"
                 crs.execute(query,(asset['asset_info']['av']))
+
                 descr_argument=",".join(['%s'] * len(asset['description']['dv']))
                 des=f"INSERT INTO assets_description({asset['description']['dc']}) values({descr_argument})"
                 crs.execute(des,(asset['description']['dv']))
@@ -57,26 +56,34 @@ def handle_connections():
         while True:
             conn, addr = server.accept()
             data=conn.recv(1024).decode()
+            print('connected')
             if data.startswith('OPTIONS'):#Handle preflight request and cors header issues
                 conn.send(preflight_headers.encode('utf-8'))
                 continue
             server_response=process_request(conn,data)
             response(conn,server_response)
     except KeyboardInterrupt as error:
-        print(error)
+        print('handleconnectionError:',error)
     finally:
         server.close()
 
 def process_request(client,request):#process all http request
+    print('about to process')
     try:
         headers,body=request.split('\r\n\r\n',1)
         if headers.startswith('GET'):
+            if not headers:
+                return
             header=headers.splitlines()[0]
+            print(header)
             url=header.split(' ')[1]
             parse_url=urlparse(url)
+            print(parse_url)
             table_name=parse_url.path.replace('/'," ").strip()
             query_param=parse_qs(parse_url.query)
+            print(query_param)
             data={'table_name':table_name,'columns':{k:v[0] for k,v in query_param.items()}}
+            print(data)
             match data['table_name']:
                 case 'transaction':
                      db_response=get_users_transation(data['columns'])
@@ -84,33 +91,107 @@ def process_request(client,request):#process all http request
                     db_response=get_all_assets()
                 case 'portfolio':
                     db_response=get_user_portfolio(data['columns'])
+                case 'asset_details':
+                    print('i am here')
+                    db_response=get_asset_details(data['columns'])
             return db_response
         else:
+            if isinstance(body,str):
+                tuplelst=[]
+                form_body=body.split('&')
+                for value in form_body:
+                    obj=value.split('=')
+                    tuplelst.append(tuple(obj))
+                body={}
+                for tup in tuplelst:
+                    body.update(([(tup[0],tup[1])]))
+                print(body)
+                save_sign_detail(body)
+                return
             data=json.loads(body)
             crs=connect_db()
             transaction(client,data,crs)
             msg={"status":'OK'}
+            # print(form_body)
         return json.dumps(msg)
             
     except Exception as error:
-        print(error)
+        print('processRequestError:',error)
+
+
+def save_sign_detail(data):
+    crs=connect_db()
+    users_column=f"select column_name from information_schema.columns where table_name='users'"
+    crs.execute(users_column)
+    norm_columns=crs.fetchall()[1:]
+    lst_columns=[]
+    for column in norm_columns:
+        lst_columns.append(column[0])
+    columns=",".join(lst_columns)
+    lstvalues=[]
+    for k,v in data.items():
+        lstvalues.append(v)
+    values_arg=",".join(['%s']*len(lstvalues))
+    save_user_info=f"insert into users ({columns}) values({values_arg})"
+    crs.execute(save_user_info,(lstvalues))
+    crs.execute('select password from users')
+    password=crs.fetchall()
+    print(password)
+
+def get_asset_details(data):
+    print(' get asset called')
+    try:
+        detail_column_query="select column_name from information_schema.columns where table_name in('asset_details')"
+        crs=connect_db()
+        crs.execute(detail_column_query)
+        detail_column=crs.fetchall()[1:]
+        detail_col=[]
+        for column in detail_column:
+            detail_col.append(column[0])
+        asset_column_query="select column_name from information_schema.columns where table_name in('assets')"
+        crs.execute(asset_column_query)
+        asset_column=crs.fetchall()[2:]
+        asset_col=[]
+        for column in asset_column:
+            asset_col.append(column[0])
+        # print(asset_col)
+        # print(detail_col)
+        column_lst=asset_col + detail_col
+        detail_column=",".join(detail_col)
+        asset_column=",".join(asset_col)
+        fetch_detail_query=f"select {asset_column},{detail_column} from asset_details d join assets a on a.id=d.asset_id  where a.id={int(data['id'])}"
+        crs.execute(fetch_detail_query)
+        reply=crs.fetchone()
+        data=dict((zip(column_lst,reply)))
+        for k,v in data.items():
+            if isinstance(v,Decimal):
+                data[k]=float(v)
+            if isinstance(v,datetime):
+                data[k]=datetime.strftime(v,'%Y-%m-%d %H:%M:%S')
+        response=json.dumps(data)
+        return response
+    except Exception as error:
+        print('getAssetDetailError:',error)
 #GET queies
 #100% done with assets endpoint
 def get_all_assets():
-    crs=connect_db()
-    columns=['id','assets_name','symbol','type','price','market_cap','percent_change_24h','logo']
-    assets_query="select id,assets_name,symbol,type,price,market_cap,percent_change_24h,logo from assets limit 50"
-    crs.execute(assets_query)
-    assets=crs.fetchall()
-    all_assets=[]
-    for asset in assets:
-        data=dict((zip(columns,asset)))
-        data['price']=float(data['price'])
-        data['market_cap']=float(data['market_cap'])
-        data['percent_change_24h']=float(data['percent_change_24h'])
-        all_assets.append(data)
-    db_assets=json.dumps(all_assets)
-    return db_assets
+    try:
+        crs=connect_db()
+        columns=['id','assets_name','symbol','type','price','market_cap','percent_change_24h','logo']
+        assets_query="select id,assets_name,symbol,type,price,market_cap,percent_change_24h,logo from assets limit 50"
+        crs.execute(assets_query)
+        assets=crs.fetchall()
+        all_assets=[]
+        for asset in assets:
+            data=dict((zip(columns,asset)))
+            for k,v in data.items():
+                if isinstance(v,Decimal):
+                    data[k]=float(v)
+            all_assets.append(data)  
+        db_assets=json.dumps(all_assets)
+        return db_assets
+    except Exception as error:
+        print('getAllAssetError:',error)
 
 #done 100% done with portfolio endpoint
 def get_user_portfolio(data): #get users portfolio
@@ -165,7 +246,7 @@ def get_user_portfolio(data): #get users portfolio
                     response=json.dumps(portfolio)
                     return(response)
     except Exception as e:
-        print(e)
+        print('portfolioError:',e)
     except psycopg2.DatabaseError as error:
         print(error)
 
@@ -216,18 +297,7 @@ def get_users_transation(data):#Done with this for now REFACTOR later
             print(db_response)
             return db_response
         except (Exception,SyntaxError,ValueError,IndexError) as error:
-            print(error)
-
-def process_post_request(request,conn):#extract get request from the url of the http GET method
-    if '\r\n\r\n' in request:
-        headers,body=request.split('\r\n\r\n',1)
-        data=json.loads(body)
-        
-
-# def retreive_data_from_db(query_request):
-#     if (len(query_request['columns'])) ==0:
-#         retrieve_all=f"select * from {query_request['table_name']}"
-#         return
+            print('getUserTransactionError:',error)
     
 
 
@@ -237,21 +307,9 @@ def connect_db(): # Connect to the data
         connect=psycopg2.connect(**db_params)
         connect.autocommit=True
         crs=connect.cursor()
-        # query1="""
-        # select * from assets
-        # """
-        # crs.execute(query1)
-        # response1=crs.fetchall()
-        # print(response1)
-        # query2="select column_name from information_schema.columns where table_name='assets'"
-        # crs.execute(query2)
-        # response2=crs.fetchall()
-        # print(response2)
         return crs
     except psycopg2.DatabaseError as error:
         print(error)
-    # finally:
-    #     crs.close()
 def transaction(client,data,crs): # transaction function update the transaction and portfolio table
     try:
         crs.execute('BEGIN')
@@ -357,6 +415,8 @@ def validate_trans_db_data(crs,data): # validate data from the transaction table
         
     
 def response(client,rsp):# Response route
+    if not rsp:
+        return
     rsp=cors_header + rsp
     client.send(rsp.encode('utf-8'))
     client.shutdown(socket.SHUT_RDWR)
@@ -406,7 +466,7 @@ def fetch_assets():
         # print('asset returned')
         return real_assets
     except Exception as error:
-        print(error)
+        print('fetchError:',error)
         # print(real_assets)
         
 # def update_assets():

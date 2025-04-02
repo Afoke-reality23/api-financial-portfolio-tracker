@@ -1,0 +1,16 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.header {
+  height: 150px;
+  width: 375px;
+  background: linear-gradient(180deg, #12161c, #1e2a38);
+  padding: 15px;
+}
+body {
+  background-color: #12161c;
+  max-width: 375px;
+  margin: 0 auto;
+}

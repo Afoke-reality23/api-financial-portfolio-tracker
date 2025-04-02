@@ -85,42 +85,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   //add eventlistener to row to view asset details
-  function fetchAssetDetail(fetchAssetDetail) {
-    fetch(`http://localhost:1998/assets_description?id=${assetId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error({
-            errorCode: response.status,
-            mesage: "failed to fetch resources",
-          });
-        }
-      })
-      .then((data) => {
-        console.log(data);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }
+
   console.log(tableBody);
-  const observer = new MutationObserver((mutaionList) => {
+  const observer = new MutationObserver(() => {
     const rows = document.querySelectorAll(".tbody .row");
     rows.forEach((row) => {
-      row.addEventListener("click", () => {
-        // console.log("row is clicked");
-        const tds = row.querySelectorAll("td");
-        assetId = tds[0].textContent;
-        console.log(assetId);
-        // console.log(typeof intAssetId);
-        // fetchAssetDetail();
-      });
+      const tds = row.querySelectorAll("td");
+      assetId = tds[0].textContent;
+      row.setAttribute(
+        "onclick",
+        `window.location='assetdetail.html?id=${assetId}'`
+      );
     });
   });
   observer.observe(tableBody, { childList: true, subtree: true });

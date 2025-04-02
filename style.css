@@ -163,3 +163,10 @@ tr {
   display: flex;
   flex-direction: column;
 }
+tr a {
+  display: block;
+  position: absolute;
+}
+.row {
+  cursor: pointer;
+}
